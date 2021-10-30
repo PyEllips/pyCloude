@@ -26,28 +26,28 @@ MMc = np.array([[[0.5614, 0.0789, 0.0310, -0.0076],
                 [ 0.27979999, -0.44664309,  0.31538681,  0.40984917]]])
 
 def test_cloude_decomposition():
-    """Check whether the algorithm is accurate to the published result up until the 4. decimal"""
+    """Is accurate to the published result up until the 4. decimal"""
     assert_array_almost_equal(cloude_decomposition(np.array([MM[0]])),
                               np.array([MMc[0]]),
                               decimal=4)
 
 def test_cloude_decomposition_vectorized():
-    """Check whether the algorithm is accurate to the published result up until the 4. decimal
+    """Is accurate to the published result up until the 4. decimal
     when vectorizing over to matrices"""
     assert_array_almost_equal(cloude_decomposition(MM),
                               MMc,
                               decimal=4)
 
 def test_decomposition_of_2d_array():
-    """Check whether the algorithm executes a 2D array without spectral dimension correctly"""
+    """Executes a 2D array without spectral dimension correctly"""
     assert_array_almost_equal(cloude_decomposition(MM[0]), np.array([MMc[0]]), decimal=4)
 
 def test_error_on_non_numpy_input():
-    """Check whether the algorithm raises an error if no numpy array is provided"""
+    """Raises an error if no numpy array is provided"""
     with pytest.raises(ValueError):
         cloude_decomposition(1)
 
 def test_error_on_non_numpy_input_for_ev_mask():
-    """Check whether the algorithm raises an error if no numpy array is provided"""
+    """Raises an error if no numpy array is provided"""
     with pytest.raises(ValueError):
         cloude_decomposition(MM, 0)
