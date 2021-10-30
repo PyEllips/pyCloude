@@ -23,85 +23,80 @@ def reshape_matrix_into_dataframe(exp_df, mueller_matrix):
 
     return mueller_df
 
-def mueller_to_hermitian(M):
-    H = np.zeros(M.shape, dtype='complex64')
-    H[:, 0, 0] = M[:, 0, 0]    + M[:, 0, 1]    + M[:, 1, 0]    + M[:, 1, 1]
-    H[:, 0, 1] = M[:, 0, 2]    + 1j*M[:, 0, 3] + M[:, 1, 2]    + 1j*M[:, 1, 3]
-    H[:, 0, 2] = M[:, 2, 0]    + M[:, 2, 1]    - 1j*M[:, 3, 0] - 1j*M[:, 3, 1]
-    H[:, 0, 3] = M[:, 2, 2]    + 1j*M[:, 2, 3] - 1j*M[:, 3, 2] + M[:, 3, 3]
+def mueller_to_hermitian(m_m):
+    """Transform a mueller matrix into a hermitian covariance matrix
+    using the relation 1/4 ∑ m_ij * (σ_i ⊗ σ_j),
+    where σ_i are the Pauli spin matrices."""
+    cov_matrix = np.zeros(m_m.shape, dtype='complex64')
+    cov_matrix[:, 0, 0] = m_m[:, 0, 0]    + m_m[:, 0, 1]    + m_m[:, 1, 0]    + m_m[:, 1, 1]
+    cov_matrix[:, 0, 1] = m_m[:, 0, 2]    + 1j*m_m[:, 0, 3] + m_m[:, 1, 2]    + 1j*m_m[:, 1, 3]
+    cov_matrix[:, 0, 2] = m_m[:, 2, 0]    + m_m[:, 2, 1]    - 1j*m_m[:, 3, 0] - 1j*m_m[:, 3, 1]
+    cov_matrix[:, 0, 3] = m_m[:, 2, 2]    + 1j*m_m[:, 2, 3] - 1j*m_m[:, 3, 2] + m_m[:, 3, 3]
 
-    H[:, 1, 1] = M[:, 0, 0]    - M[:, 0, 1]    + M[:, 1, 0]    - M[:, 1, 1]
-    H[:, 1, 2] = M[:, 2, 2]    - 1j*M[:, 2, 3] - 1j*M[:, 3, 2] - M[:, 3, 3]
-    H[:, 1, 3] = M[:, 2, 0]    - M[:, 2, 1]    - 1j*M[:, 3, 0] + 1j*M[:, 3, 1]
+    cov_matrix[:, 1, 1] = m_m[:, 0, 0]    - m_m[:, 0, 1]    + m_m[:, 1, 0]    - m_m[:, 1, 1]
+    cov_matrix[:, 1, 2] = m_m[:, 2, 2]    - 1j*m_m[:, 2, 3] - 1j*m_m[:, 3, 2] - m_m[:, 3, 3]
+    cov_matrix[:, 1, 3] = m_m[:, 2, 0]    - m_m[:, 2, 1]    - 1j*m_m[:, 3, 0] + 1j*m_m[:, 3, 1]
 
-    H[:, 2, 2] = M[:, 0, 0]    + M[:, 0, 1]    - M[:, 1, 0]    - M[:, 1, 1]
-    H[:, 2, 3] = M[:, 0, 2]    - M[:, 1, 2]    + 1j*M[:, 0, 3] - 1j*M[:, 1, 3]
-    H[:, 3, 3] = M[:, 0, 0]    - M[:, 0, 1]    - M[:, 1, 0]    + M[:, 1, 1]
+    cov_matrix[:, 2, 2] = m_m[:, 0, 0]    + m_m[:, 0, 1]    - m_m[:, 1, 0]    - m_m[:, 1, 1]
+    cov_matrix[:, 2, 3] = m_m[:, 0, 2]    - m_m[:, 1, 2]    + 1j*m_m[:, 0, 3] - 1j*m_m[:, 1, 3]
+    cov_matrix[:, 3, 3] = m_m[:, 0, 0]    - m_m[:, 0, 1]    - m_m[:, 1, 0]    + m_m[:, 1, 1]
 
-    H[:, 1, 0] = np.conjugate(H[:, 0, 1])
-    H[:, 2, 0] = np.conjugate(H[:, 0, 2])
-    H[:, 3, 0] = np.conjugate(H[:, 0, 3])
-    H[:, 2, 1] = np.conjugate(H[:, 1, 2])
-    H[:, 3, 1] = np.conjugate(H[:, 1, 3])
-    H[:, 3, 2] = np.conjugate(H[:, 2, 3])
+    cov_matrix[:, 1, 0] = np.conjugate(cov_matrix[:, 0, 1])
+    cov_matrix[:, 2, 0] = np.conjugate(cov_matrix[:, 0, 2])
+    cov_matrix[:, 3, 0] = np.conjugate(cov_matrix[:, 0, 3])
+    cov_matrix[:, 2, 1] = np.conjugate(cov_matrix[:, 1, 2])
+    cov_matrix[:, 3, 1] = np.conjugate(cov_matrix[:, 1, 3])
+    cov_matrix[:, 3, 2] = np.conjugate(cov_matrix[:, 2, 3])
 
-    H = np.divide(H, 4.0)
+    cov_matrix = np.divide(cov_matrix, 4.0)
 
-    return H
+    return cov_matrix
 
-# Vectorized case - keep for further recoding
-# def hermitian_to_mueller(H):
-#     M = np.zeros(H.shape, dtype='float64')
-#     M[:, 0, 0] = np.real(H[:, 0, 0] + H[:, 1, 1] + H[:, 2, 2] + H[:, 3, 3])
-#     M[:, 0, 1] = np.real(H[:, 0, 0] - H[:, 1, 1] + H[:, 2, 2] - H[:, 3, 3])
-#     M[:, 0, 2] = np.real(H[:, 0, 1] + H[:, 1, 0] + H[:, 2, 3] + H[:, 3, 2])
-#     M[:, 0, 3] = np.imag(H[:, 0, 1] - H[:, 1, 0] + H[:, 2, 3] - H[:, 3, 2])
-#     M[:, 1, 0] = np.real(H[:, 0, 0] + H[:, 1, 1] - H[:, 2, 2] - H[:, 3, 3])
-#     M[:, 1, 1] = np.real(H[:, 0, 0] - H[:, 1, 1] - H[:, 2, 2] + H[:, 3, 3])
-#     M[:, 1, 2] = np.real(H[:, 0, 1] + H[:, 1, 0] - H[:, 2, 3] - H[:, 3, 2])
-#     M[:, 1, 3] = np.imag(H[:, 0, 1] - H[:, 1, 0] - H[:, 2, 3] + H[:, 3, 2])
-#     M[:, 2, 0] = np.real(H[:, 0, 2] + H[:, 2, 0] + H[:, 1, 3] + H[:, 3, 1])
-#     M[:, 2, 1] = np.real(H[:, 0, 2] + H[:, 2, 0] - H[:, 1, 3] - H[:, 3, 1])
-#     M[:, 2, 2] = np.real(H[:, 0, 3] + H[:, 3, 0] + H[:, 1, 2] + H[:, 2, 1])
-#     M[:, 2, 3] = np.imag(H[:, 0, 3] - H[:, 3, 0] - H[:, 1, 2] + H[:, 2, 1])
-#     M[:, 3, 0] = np.imag(H[:, 2, 0] - H[:, 0, 2] - H[:, 1, 3] + H[:, 3, 1])
-#     M[:, 3, 1] = np.imag(H[:, 2, 0] - H[:, 0, 2] + H[:, 1, 3] - H[:, 3, 1])
-#     M[:, 3, 2] = np.imag(H[:, 3, 0] - H[:, 0, 3] + H[:, 2, 1] - H[:, 1, 2])
-#     M[:, 3, 3] = np.real(H[:, 0, 3] + H[:, 3, 0] - H[:, 1, 2] - H[:, 2, 1])
+def hermitian_to_mueller(c_m):
+    """Transform a hermitian covariance matrix back into a mueller matrix
+    using the relation m_ij = tr[(σ_i ⊗ σ_j) H],
+    where σ_i are the Pauli spin matrices and H is the covariance matrix."""
+    mueller_matrix = np.zeros(c_m.shape, dtype='float64')
+    mueller_matrix[:, 0, 0] = np.real(c_m[:, 0, 0] + c_m[:, 1, 1] + c_m[:, 2, 2] + c_m[:, 3, 3])
+    mueller_matrix[:, 0, 1] = np.real(c_m[:, 0, 0] - c_m[:, 1, 1] + c_m[:, 2, 2] - c_m[:, 3, 3])
+    mueller_matrix[:, 0, 2] = np.real(c_m[:, 0, 1] + c_m[:, 1, 0] + c_m[:, 2, 3] + c_m[:, 3, 2])
+    mueller_matrix[:, 0, 3] = np.imag(c_m[:, 0, 1] - c_m[:, 1, 0] + c_m[:, 2, 3] - c_m[:, 3, 2])
+    mueller_matrix[:, 1, 0] = np.real(c_m[:, 0, 0] + c_m[:, 1, 1] - c_m[:, 2, 2] - c_m[:, 3, 3])
+    mueller_matrix[:, 1, 1] = np.real(c_m[:, 0, 0] - c_m[:, 1, 1] - c_m[:, 2, 2] + c_m[:, 3, 3])
+    mueller_matrix[:, 1, 2] = np.real(c_m[:, 0, 1] + c_m[:, 1, 0] - c_m[:, 2, 3] - c_m[:, 3, 2])
+    mueller_matrix[:, 1, 3] = np.imag(c_m[:, 0, 1] - c_m[:, 1, 0] - c_m[:, 2, 3] + c_m[:, 3, 2])
+    mueller_matrix[:, 2, 0] = np.real(c_m[:, 0, 2] + c_m[:, 2, 0] + c_m[:, 1, 3] + c_m[:, 3, 1])
+    mueller_matrix[:, 2, 1] = np.real(c_m[:, 0, 2] + c_m[:, 2, 0] - c_m[:, 1, 3] - c_m[:, 3, 1])
+    mueller_matrix[:, 2, 2] = np.real(c_m[:, 0, 3] + c_m[:, 3, 0] + c_m[:, 1, 2] + c_m[:, 2, 1])
+    mueller_matrix[:, 2, 3] = np.imag(c_m[:, 0, 3] - c_m[:, 3, 0] - c_m[:, 1, 2] + c_m[:, 2, 1])
+    mueller_matrix[:, 3, 0] = np.imag(c_m[:, 2, 0] - c_m[:, 0, 2] - c_m[:, 1, 3] + c_m[:, 3, 1])
+    mueller_matrix[:, 3, 1] = np.imag(c_m[:, 2, 0] - c_m[:, 0, 2] + c_m[:, 1, 3] - c_m[:, 3, 1])
+    mueller_matrix[:, 3, 2] = np.imag(c_m[:, 3, 0] - c_m[:, 0, 3] + c_m[:, 2, 1] - c_m[:, 1, 2])
+    mueller_matrix[:, 3, 3] = np.real(c_m[:, 0, 3] + c_m[:, 3, 0] - c_m[:, 1, 2] - c_m[:, 2, 1])
 
-#     M = np.divide(M, 2.0)
-#     return M
+    return mueller_matrix
 
-def hermitian_to_mueller(H):
-    M = np.zeros(H.shape, dtype='float64')
-    M[0, 0] = np.real(H[0, 0] + H[1, 1] + H[2, 2] + H[3, 3])
-    M[0, 1] = np.real(H[0, 0] - H[1, 1] + H[2, 2] - H[3, 3])
-    M[0, 2] = np.real(H[0, 1] + H[1, 0] + H[2, 3] + H[3, 2])
-    M[0, 3] = np.imag(H[0, 1] - H[1, 0] + H[2, 3] - H[3, 2])
-    M[1, 0] = np.real(H[0, 0] + H[1, 1] - H[2, 2] - H[3, 3])
-    M[1, 1] = np.real(H[0, 0] - H[1, 1] - H[2, 2] + H[3, 3])
-    M[1, 2] = np.real(H[0, 1] + H[1, 0] - H[2, 3] - H[3, 2])
-    M[1, 3] = np.imag(H[0, 1] - H[1, 0] - H[2, 3] + H[3, 2])
-    M[2, 0] = np.real(H[0, 2] + H[2, 0] + H[1, 3] + H[3, 1])
-    M[2, 1] = np.real(H[0, 2] + H[2, 0] - H[1, 3] - H[3, 1])
-    M[2, 2] = np.real(H[0, 3] + H[3, 0] + H[1, 2] + H[2, 1])
-    M[2, 3] = np.imag(H[0, 3] - H[3, 0] - H[1, 2] + H[2, 1])
-    M[3, 0] = np.imag(H[2, 0] - H[0, 2] - H[1, 3] + H[3, 1])
-    M[3, 1] = np.imag(H[2, 0] - H[0, 2] + H[1, 3] - H[3, 1])
-    M[3, 2] = np.imag(H[3, 0] - H[0, 3] + H[2, 1] - H[1, 2])
-    M[3, 3] = np.real(H[0, 3] + H[3, 0] - H[1, 2] - H[2, 1])
-
-    return M
-
-def cloude_decomposition(MM, cut_off=2):
+def cloude_decomposition(exp_matrix,
+                         ev_mask=np.array([True, False, False, False]),
+                         output_eigenvector=False):
     """Cloude decomposition of a Mueller matrix MM"""
-    if not isinstance(MM, np.ndarray) or MM.ndim != 3 or MM.shape[1:] != (4, 4):
-        raise ValueError(f'Malformed Mueller matrix (with dimension {MM.shape}),'
-                          'has to be of dimension (N, 4, 4)')
-    if cut_off > 3 or cut_off < 0:
-        raise ValueError('Cutoff must be in a range between (including) 0 and 3')
+    if not isinstance(exp_matrix, np.ndarray):
+        raise ValueError(f'exp_matrix has to be a numpy array, not {type(exp_matrix)}')
 
-    cov_matrix = mueller_to_hermitian(MM)
+    if exp_matrix.ndim == 2 and exp_matrix.shape == (4, 4):
+        exp_matrix = np.array([exp_matrix])
+
+    if exp_matrix.ndim != 3 or exp_matrix.shape[1:] != (4, 4):
+        raise ValueError(f'Malformed Mueller matrix (with dimension {exp_matrix.shape}), '
+                          'has to be of dimension (N, 4, 4)')
+
+    if not isinstance(ev_mask, np.ndarray):
+        raise ValueError(f'ev_mask has to be a numpy array of type bool, not {type(exp_matrix)}')
+
+    if not ev_mask.ndim == 1 and ev_mask.shape == (4,) and ev_mask.dtype == np.bool:
+        raise ValueError(f'ev_mask has to be of shape (4,) not {ev_mask.shape}')
+
+    cov_matrix = mueller_to_hermitian(exp_matrix)
     eig_val, eig_vec = np.linalg.eigh(cov_matrix)
 
     # Sort eigenvalues and -vectors descending by eigenvalue
@@ -111,15 +106,12 @@ def cloude_decomposition(MM, cut_off=2):
     eig_val_sorted = np.take_along_axis(eig_val, idx, axis=1)
     eig_vec_sorted = np.take_along_axis(np.transpose(eig_vec, (0, 2, 1)), idx_vec, axis=1)
 
-    # Calculate Mueller matrices from eigenvalues
-    mueller_matrix = np.zeros((eig_val_sorted.shape[0], 4, 4))
-    for i in range(eig_val_sorted.shape[0]):
-        mueller_j = np.zeros((4, 4))
-        for j in range(eig_val_sorted.shape[1] - cut_off):
-            eigv = np.array([eig_vec_sorted[i, j]], dtype='complex64')
-            cov_matrix_j = eigv.T @ np.conjugate(eigv)
-            mueller_j += hermitian_to_mueller(eig_val_sorted[i, j] * cov_matrix_j)
+    eig_val_diag = np.apply_along_axis(lambda ev: ev * np.eye(4), 1, eig_val_sorted * ev_mask)
+    cov_matrix_j = np.transpose(eig_vec_sorted, (0, 2, 1)) @\
+                    eig_val_diag @\
+                    np.conjugate(eig_vec_sorted)
+    mueller_matrix = hermitian_to_mueller(cov_matrix_j)
 
-        mueller_matrix[i] = mueller_j
-
+    if output_eigenvector:
+        return mueller_matrix, eig_val_sorted
     return mueller_matrix
