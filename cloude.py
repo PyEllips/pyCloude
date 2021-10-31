@@ -80,6 +80,8 @@ def cloude_decomposition(exp_matrix,
                          ev_mask=np.array([True, False, False, False]),
                          output_eigenvector=False):
     """Cloude decomposition of a Mueller matrix MM"""
+
+    # Check input values
     if not isinstance(exp_matrix, np.ndarray):
         raise ValueError(f'exp_matrix has to be a numpy array, not {type(exp_matrix)}')
 
@@ -90,26 +92,34 @@ def cloude_decomposition(exp_matrix,
         raise ValueError(f'Malformed Mueller matrix (with dimension {exp_matrix.shape}), '
                           'has to be of dimension (N, 4, 4)')
 
+    if isinstance(ev_mask, list) and len(ev_mask) == 4:
+        ev_mask = np.array(ev_mask, dtype=np.bool)
+
     if not isinstance(ev_mask, np.ndarray):
         raise ValueError(f'ev_mask has to be a numpy array of type bool, not {type(exp_matrix)}')
 
     if not ev_mask.ndim == 1 and ev_mask.shape == (4,) and ev_mask.dtype == np.bool:
         raise ValueError(f'ev_mask has to be of shape (4,) not {ev_mask.shape}')
 
+    # Convert mueller matrix into covariance matrix and calculate eigenvalues/-vectors
     cov_matrix = mueller_to_hermitian(exp_matrix)
     eig_val, eig_vec = np.linalg.eigh(cov_matrix)
 
     # Sort eigenvalues and -vectors descending by eigenvalue
     idx = (-eig_val).argsort(axis=1)
-    idx_vec = np.repeat(idx, 4, axis=1).reshape((*idx.shape, 4))
+    idx_vec = np.transpose(np.repeat(idx, 4, axis=1).reshape((*idx.shape, 4)),
+                           (0, 2, 1))
 
     eig_val_sorted = np.take_along_axis(eig_val, idx, axis=1)
-    eig_vec_sorted = np.take_along_axis(np.transpose(eig_vec, (0, 2, 1)), idx_vec, axis=1)
+    eig_vec_sorted = np.take_along_axis(eig_vec, idx_vec, axis=2)
 
-    eig_val_diag = np.apply_along_axis(lambda ev: ev * np.eye(4), 1, eig_val_sorted * ev_mask)
-    cov_matrix_j = np.transpose(eig_vec_sorted, (0, 2, 1)) @\
+    # Calculate 4 covariance matrices for each set of eigenvalue and -vector
+    eig_val_diag = np.apply_along_axis(lambda ev: ev * np.eye(4),
+                                       1,
+                                       eig_val_sorted * ev_mask)
+    cov_matrix_j = eig_vec_sorted @\
                     eig_val_diag @\
-                    np.conjugate(eig_vec_sorted)
+                    np.conjugate(np.transpose(eig_vec_sorted, (0, 2, 1)))
     mueller_matrix = hermitian_to_mueller(cov_matrix_j)
 
     if output_eigenvector:
