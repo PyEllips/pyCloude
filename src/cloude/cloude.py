@@ -18,7 +18,7 @@ def reshape_matrix_into_dataframe(exp_df, mueller_matrix):
     """Reshape a numpy 4x4 array containing mueller matrix elements
     to a dataframe with columns Mxy. The index labels for each column
     are taken from the provided exp_df."""
-    mueller_df = pd.DataFrame(index=exp_df.index, columns=exp_df.columns)
+    mueller_df = pd.DataFrame(index=exp_df.index, columns=exp_df.columns, dtype='float64')
     mueller_df.values[:] = mueller_matrix.reshape(-1, 16)
 
     return mueller_df
@@ -75,6 +75,28 @@ def hermitian_to_mueller(c_m):
     mueller_matrix[:, 3, 3] = np.real(c_m[:, 0, 3] + c_m[:, 3, 0] - c_m[:, 1, 2] - c_m[:, 2, 1])
 
     return mueller_matrix
+
+def depolarization_index(mueller_matrix):
+    """Calculate the depolarization index of a mueller matrix"""
+    if isinstance(mueller_matrix, np.ndarray)\
+            and mueller_matrix.ndim == 3\
+            and mueller_matrix.shape[1:] == (4, 4):
+        return np.sqrt(np.sum(mueller_matrix**2, axis=(1, 2)) - mueller_matrix[:, 0, 0]**2)\
+            / np.sqrt(3) / mueller_matrix[:, 0, 0]
+
+    if isinstance(mueller_matrix, np.ndarray)\
+            and mueller_matrix.ndim == 2\
+            and mueller_matrix.shape == (4, 4):
+        return np.sqrt(np.sum(mueller_matrix**2) - mueller_matrix[0, 0]**2)\
+            / np.sqrt(3) / mueller_matrix[0, 0]
+
+    if isinstance(mueller_matrix, pd.DataFrame)\
+            and mueller_matrix.shape[-1] == (16):
+        return np.sqrt((mueller_matrix**2).sum(axis=1) - mueller_matrix.loc[:, 'M11']**2)\
+            / np.sqrt(3) / mueller_matrix.loc[:, 'M11']
+
+    raise ValueError(f"Mueller matrix of type {type(mueller_matrix)} not supported. "
+                      "Please use either a pandas Dataframe of shape (N, 16) or a numpy ndarray of shape (N, 4, 4)")
 
 def cloude_decomposition(exp_matrix,
                          ev_mask=np.array([True, False, False, False]),
