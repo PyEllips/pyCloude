@@ -1,6 +1,6 @@
 """Testing case for Cloude decomposition.
 Compare the algorithm to a published nearest coherent matrix."""
-from .cloude import cloude_decomposition
+from cloude import cloude_decomposition
 import numpy as np
 from numpy.testing import assert_array_almost_equal
 import pytest

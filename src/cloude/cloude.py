@@ -96,7 +96,8 @@ def depolarization_index(mueller_matrix):
             / np.sqrt(3) / mueller_matrix.loc[:, 'M11']
 
     raise ValueError(f"Mueller matrix of type {type(mueller_matrix)} not supported. "
-                      "Please use either a pandas Dataframe of shape (N, 16) or a numpy ndarray of shape (N, 4, 4)")
+                      "Please use either a pandas Dataframe of shape (N, 16) "
+                      "or a numpy ndarray of shape (N, 4, 4)")
 
 def cloude_decomposition(exp_matrix,
                          ev_mask=np.array([True, False, False, False]),
