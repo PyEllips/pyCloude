@@ -1,6 +1,13 @@
 # pyCloude
 A cloude decomposition implementation
 
+## Installation
+Download package and execute either
+    python setup.py install
+to install the package or
+    python setup.py develop
+to install it in development mode.
+
 ## Example usage
     from cloude import cloude_decomposition
     import numpy as np
