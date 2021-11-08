@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 from .transformations import mueller_to_hermitian, hermitian_to_mueller, coherency_matrix
 
-def read_mueller_matrix_from_file(fname):
+def mmatrix_from_file(fname):
     """Read a Mueller matrix from a Sentech ASCII file.
     Save the file in SpectraRay under Save As -> Ascii (.txt)"""
     mueller_matrix = pd.read_csv(fname, sep=r'\s+', index_col=0).iloc[:, 36:-1]
@@ -15,7 +15,7 @@ def read_mueller_matrix_from_file(fname):
 
     return mueller_matrix
 
-def reshape_matrix_into_dataframe(exp_df, mueller_matrix):
+def mmatrix_to_dataframe(exp_df, mueller_matrix):
     """Reshape a numpy 4x4 array containing mueller matrix elements
     to a dataframe with columns Mxy. The index labels for each column
     are taken from the provided exp_df."""
@@ -23,6 +23,25 @@ def reshape_matrix_into_dataframe(exp_df, mueller_matrix):
     mueller_df.values[:] = mueller_matrix.reshape(-1, 16)
 
     return mueller_df
+
+def dataframe_to_mmatrix(mueller_df):
+    """Reshape a dataframe with mueller matrix elements with columns Mxy
+    to a numpy 4x4 array."""
+    return mueller_df.values.reshape(-1, 4, 4)
+
+def dataframe_to_psi_delta(mueller_df):
+    """Convert a mueller matrix dataframe with columns Mxy
+    to a dataframe containing Ψ and Δ values.
+    This is only perfectly reasonable for isotropic materials."""
+    N = -mueller_df.loc[:,['M12', 'M21']].mean(axis=1)
+    C = mueller_df.loc[:,'M33']
+    S = (mueller_df.loc[:,'M34'] - mueller_df.loc[:,'M43'])/2
+
+    Ψ = (C + 1j * S / (1 + N)).apply(lambda x: np.arctan(np.abs(x)))
+    Δ = (C + 1j * S / (1 + N)).apply(lambda x: np.angle(x))
+
+    return pd.DataFrame({'Ψ': Ψ,
+                         'Δ': Δ}, index=mueller_df.index)
 
 def depolarization_index(mueller_matrix):
     """Calculate the depolarization index of a mueller matrix"""
@@ -84,7 +103,7 @@ def sorted_eigh(matrix):
 
     return eig_val_sorted, eig_vec_sorted
 
-def cloude_decomposition(exp_matrix,
+def cloude_decomp(exp_matrix,
                          ev_mask=np.array([True, False, False, False]),
                          output_eigenvector=False):
     """Cloude decomposition of a Mueller matrix MM"""
