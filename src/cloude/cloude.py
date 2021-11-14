@@ -5,7 +5,15 @@ from .transformations import mueller_to_hermitian, hermitian_to_mueller, coheren
 
 def mmatrix_from_file(fname):
     """Read a Mueller matrix from a Sentech ASCII file.
-    Save the file in SpectraRay under Save As -> Ascii (.txt)"""
+       Save the file in SpectraRay under Save As -> Ascii (.txt)
+
+    Args:
+        fname (str): filename of the sentech ASCII file containing mueller matrix elements.
+
+    Returns:
+        pandas.DataFrame (N, 16): Dataframe containing each matrix element as a column with name Mxy
+                                  (e.g. M11 for the 11 matrix element)
+    """
     mueller_matrix = pd.read_csv(fname, sep=r'\s+', index_col=0).iloc[:, 36:-1]
     mueller_matrix.index.name = 'Wavelength'
     mueller_matrix.columns = ['M11', 'M12', 'M13', 'M14',
@@ -17,8 +25,17 @@ def mmatrix_from_file(fname):
 
 def mmatrix_to_dataframe(exp_df, mueller_matrix):
     """Reshape a numpy 4x4 array containing mueller matrix elements
-    to a dataframe with columns Mxy. The index labels for each column
-    are taken from the provided exp_df."""
+       to a dataframe with columns Mxy. The index labels for each column
+       are taken from the provided exp_df.
+
+    Args:
+        exp_df (pandas.DataFrame (N, 16)): Experimental dataframe contributing the column and index to reshape
+                                           the numpy array into.
+        mueller_matrix ((N, 4, 4) numpy.ndarray): A numpy array containing a mueller matrix.
+
+    Returns:
+        (N, 16) pandas.DataFrame: The mueller matrix numpy array reshaped into a dataframe.
+    """
     mueller_df = pd.DataFrame(index=exp_df.index, columns=exp_df.columns, dtype='float64')
     mueller_df.values[:] = mueller_matrix.reshape(-1, 16)
 
@@ -26,13 +43,29 @@ def mmatrix_to_dataframe(exp_df, mueller_matrix):
 
 def dataframe_to_mmatrix(mueller_df):
     """Reshape a dataframe with mueller matrix elements with columns Mxy
-    to a numpy 4x4 array."""
+    to a numpy 4x4 array.
+
+    Args:
+        mueller_df ((N, 16) pd.DataFrame): A dataframe containing mueller matrix elements.
+
+    Returns:
+        (N, 4, 4) numpy.ndarray: Reshaped dataframe into a numpy matrix notation.
+    """
     return mueller_df.values.reshape(-1, 4, 4)
 
 def dataframe_to_psi_delta(mueller_df):
     """Convert a mueller matrix dataframe with columns Mxy
     to a dataframe containing Ψ and Δ values.
-    This is only perfectly reasonable for isotropic materials."""
+    This is only perfectly reasonable for isotropic materials.
+
+    Args:
+        mueller_df ((N, 16) pandas.DataFrame): Dataframe containig
+            a mueller matrix.
+
+    Returns:
+        (N, 2) pandas.DataFrame: A frame containing psi and delta values extracted
+            from the provided mueller matrix.
+    """
     N = -mueller_df.loc[:,['M12', 'M21']].mean(axis=1)
     C = mueller_df.loc[:,'M33']
     S = (mueller_df.loc[:,'M34'] - mueller_df.loc[:,'M43'])/2
@@ -44,7 +77,7 @@ def dataframe_to_psi_delta(mueller_df):
                          'Δ': Δ}, index=mueller_df.index)
 
 def depolarization_index(mueller_matrix):
-    """Calculate the depolarization index of a mueller matrix"""
+    """Calculate the depolarization index of a mueller matrix"""    
     if isinstance(mueller_matrix, np.ndarray)\
             and mueller_matrix.ndim == 3\
             and mueller_matrix.shape[1:] == (4, 4):
@@ -90,7 +123,17 @@ def check_input_values(matrix, ev_mask):
 
 def sorted_eigh(matrix):
     """Calculate the sorted eigenvalues and eigenvectors
-    of a hermitian matrix"""
+    of a hermitian matrix
+
+    Args:
+        matrix ((N, 4, 4) numpy.ndarray): An array of 4x4 matrixes.
+
+    Returns:
+        ((N, 4) numpy.ndarray, (N, 4, 4) numpy.ndarray):
+            Contains the sorted eigenvalues (first tuple pos)
+            and eigenvectors of the matrix. The values are sorted by eigenvalues
+            on descending order.
+    """
     eig_val, eig_vec = np.linalg.eigh(matrix)
 
     # Sort eigenvalues and -vectors descending by eigenvalue
@@ -104,8 +147,8 @@ def sorted_eigh(matrix):
     return eig_val_sorted, eig_vec_sorted
 
 def cloude_decomp(exp_matrix,
-                         ev_mask=np.array([True, False, False, False]),
-                         output_eigenvector=False):
+                  ev_mask=np.array([True, False, False, False]),
+                  output_eigenvector=False):
     """Cloude decomposition of a Mueller matrix MM"""
 
     exp_matrix, ev_mask = check_input_values(exp_matrix, ev_mask)
