@@ -3,18 +3,20 @@ import numpy as np
 import pandas as pd
 from .transformations import mueller_to_hermitian, hermitian_to_mueller, coherency_matrix
 
-def mmatrix_from_file(fname):
+def mmatrix_from_file(fname: str, sep: str = r"\s+", decimal: str = ","):
     """Read a Mueller matrix from a Sentech ASCII file.
        Save the file in SpectraRay under Save As -> Ascii (.txt)
 
     Args:
         fname (str): filename of the sentech ASCII file containing mueller matrix elements.
+        sep (str, optional): Data separator in the datafile. Defaults to "\s+".
+        decimal (str, optional): Decimal separator in the datafile. Defaults to ".".
 
     Returns:
         pandas.DataFrame (N, 16): Dataframe containing each matrix element as a column with name Mxy
                                   (e.g. M11 for the 11 matrix element)
     """
-    mueller_matrix = pd.read_csv(fname, sep=r'\s+', index_col=0).iloc[:, 36:-1]
+    mueller_matrix = pd.read_csv(fname, sep=sep, index_col=0, decimal=decimal).iloc[:, -17:-1]
     mueller_matrix.index.name = 'Wavelength'
     mueller_matrix.columns = ['M11', 'M12', 'M13', 'M14',
                               'M21', 'M22', 'M23', 'M24',
@@ -70,8 +72,8 @@ def dataframe_to_psi_delta(mueller_df):
     C = mueller_df.loc[:,'M33']
     S = (mueller_df.loc[:,'M34'] - mueller_df.loc[:,'M43'])/2
 
-    Ψ = (C + 1j * S / (1 + N)).apply(lambda x: np.arctan(np.abs(x)))
-    Δ = (C + 1j * S / (1 + N)).apply(lambda x: np.angle(x))
+    Ψ = np.rad2deg((C + 1j * S / (1 + N)).apply(lambda x: np.arctan(np.abs(x))))
+    Δ = np.rad2deg((C + 1j * S / (1 + N)).apply(lambda x: np.angle(x)))
 
     return pd.DataFrame({'Ψ': Ψ,
                          'Δ': Δ}, index=mueller_df.index)
